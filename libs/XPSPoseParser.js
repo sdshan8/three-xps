@@ -5,24 +5,23 @@ function fillArray(array, minLen, value) {
 }
 
 
-function poseData(string) {
+function poseData(poseList) {
   let poseData = {};
   try {
-    const poseList = string.split('\n');
     for (let bonePose of poseList) {
       if (bonePose && bonePose.includes(":")) {
         const pose = bonePose.split(':');
         if (pose.length < 2) continue;
         const boneName = pose[0].trim();
         if (!boneName) continue;
-        const dataList = fillArray(pose[1].split(), 9, 1);
+        const dataList = fillArray(pose[1].trim().split(/\s+/), 9, 1);
         try {
-          const rotDelta = {
+          const rotation = {
             x: parseFloat(dataList[0]),
             y: parseFloat(dataList[1]),
             z: parseFloat(dataList[2])
           };
-          const coordDelta = {
+          const position = {
             x: parseFloat(dataList[3]),
             y: parseFloat(dataList[4]),
             z: parseFloat(dataList[5])
@@ -34,9 +33,9 @@ function poseData(string) {
           };
 
           let bonePose = {
-            boneName,
-            coordDelta,
-            rotDelta,
+            name: boneName,
+            position,
+            rotation,
             scale
           };
           poseData[boneName] = bonePose;
