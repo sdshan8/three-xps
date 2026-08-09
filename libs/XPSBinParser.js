@@ -1,3 +1,5 @@
+import { poseData } from "./XPSPoseParser.js";
+
 class binOps {
   static LIMIT = 128;
 
@@ -233,50 +235,6 @@ function readDefaultPose(bin, poseLength, poseBones) {
   return lines;
 }
 
-function parseDefaultPose(lines) {
-
-  const pose = {};
-
-  for (const line of lines) {
-
-    const colon = line.indexOf(":");
-    if (colon === -1) continue;
-
-    const boneName = line.substring(0, colon).trim();
-
-    const values = line
-      .substring(colon + 1)
-      .trim()
-      .split(/\s+/)
-      .map(Number);
-
-    // Equivalent to Python's fillArray(..., 9, 1)
-    while (values.length < 9) {
-      values.push(1);
-    }
-
-    pose[boneName] = {
-      name: boneName,
-      rotation: {
-        x: values[0],
-        y: values[1],
-        z: values[2]
-      },
-      position: {
-        x: values[3],
-        y: values[4],
-        z: values[5]
-      },
-      scale: {
-        x: values[6],
-        y: values[7],
-        z: values[8]
-      }
-    };
-  }
-  return pose;
-}
-
 function readHeader(bin) {
   const MAGIC = 0x0004EEA0;
   const ROUND_MULTIPLE = 4;
@@ -357,7 +315,7 @@ function readHeader(bin) {
     user,
     files,
     flags,
-    defaultPose: parseDefaultPose(defaultPose)
+    defaultPose: poseData(defaultPose)
   };
 }
 
