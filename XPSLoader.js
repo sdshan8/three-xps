@@ -16,8 +16,8 @@ import {
   Uint16BufferAttribute
 } from "three";
 import { DDSLoader } from "three/addons/loaders/DDSLoader.js"
-import { parseAscii } from "./libs/XPSAsciiParser.js"
-import { parseBin } from "./libs/XPSBinParser.js"
+import { parseAscii } from "./libs/old/XPSAsciiParser.js"
+import { parseBin } from "./libs/old/XPSBinParser.js"
 
 
 /**

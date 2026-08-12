@@ -1,4 +1,4 @@
-import { poseData } from "./XPSPoseParser.js";
+import { poseData } from "../ascii_ops.js";
 
 class binOps {
   static LIMIT = 128;
