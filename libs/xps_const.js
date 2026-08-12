@@ -1,0 +1,44 @@
+const MAGIC_NUMBER = 323232
+const XPS_VERSION_MAYOR = 3
+const XPS_VERSION_MINOR = 15
+const XNA_ARAL = 'XNAaraL'
+const SETTINGS_LEN = 1080
+const LIMIT = 128
+const STRLEN = 275
+
+const ROUND_MULTIPLE = 4
+
+//const ENCODING_READ = 'utf-8-sig'
+const ENCODING_READ = 'utf-8'
+const ENCODING_WRITE = 'utf-8'
+
+/* Flags */
+const BACK_FACE_CULLING = 'backFaceCulling'
+const ALWAYS_FORCE_CULLING = 'alwaysForceCulling'
+const MODEL_CAST_SHADOWS = 'modelCastShadows'
+const TANGENT_SPACE_RED = 'TangentSpaceRed'
+const TANGENT_SPACE_GREEN = 'TangentSpaceGreen'
+const TANGENT_SPACE_BLUE = 'TangentSpaceBlue'
+const GLOSS = 'gloss'
+const HAS_BONE_DIRECTIONS = 'hasBoneDirections'
+
+export {
+  MAGIC_NUMBER,
+  XPS_VERSION_MAYOR,
+  XPS_VERSION_MINOR,
+  XNA_ARAL,
+  SETTINGS_LEN,
+  LIMIT,
+  STRLEN,
+  ROUND_MULTIPLE,
+  ENCODING_READ,
+  ENCODING_WRITE,
+  BACK_FACE_CULLING,
+  ALWAYS_FORCE_CULLING,
+  MODEL_CAST_SHADOWS,
+  TANGENT_SPACE_RED,
+  TANGENT_SPACE_GREEN,
+  TANGENT_SPACE_BLUE,
+  GLOSS,
+  HAS_BONE_DIRECTIONS
+}
