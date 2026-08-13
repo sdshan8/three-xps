@@ -1,7 +1,5 @@
-import {
-  AsciiOps,
-  basename
-} from './ascii_ops.js';
+import { AsciiOps } from './ascii_ops.js';
+import { basename } from './helper.js';
 import * as xps_types from './xps_types.js';
 
 function readUvVert(ascii_ops) {

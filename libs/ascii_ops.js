@@ -32,11 +32,6 @@ class AsciiOps {
   }
 }
 
-function basename(path) {
-  return path.split(/[\\/]/).pop();
-}
-
 export {
-  AsciiOps,
-  basename
+  AsciiOps
 };
