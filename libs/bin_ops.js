@@ -121,3 +121,10 @@ function hasVariableWeights(verMajor, hasHeader = true) {
   }
   return false;
 }
+
+export {
+  BinOps,
+  roundToMultiple,
+  hasTangentVersion,
+  hasVariableWeights
+};
