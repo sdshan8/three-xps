@@ -1,4 +1,4 @@
-import { basename } from './helper.js';
+import { basename, isNone } from './helper.js';
 import {
   BinOps,
   roundToMultiple,
@@ -73,11 +73,11 @@ function readFilesString(bin_ops) {
     let lengthByte2 = 0;
 
     let lengthByte1 = bin_ops.readByte()
-    if (!lengthByte1) return "";
+    if (isNone(lengthByte1)) return "";
 
     if (lengthByte1 >= xps_const.LIMIT) {
       lengthByte2 = bin_ops.byte();
-      if (!lengthByte2) return "";
+      if (isNone(lengthByte2)) return "";
     }
     const length = (lengthByte1 % xps_const.LIMIT) + (lengthByte2 * xps_const.LIMIT)
 
@@ -89,102 +89,81 @@ function readFilesString(bin_ops) {
   }
 }
 
+function readVertexColor(bin_ops) {
+  try {
+    const r = bin_ops.byte() ?? 255;
+    const g = bin_ops.byte() ?? 255;
+    const b = bin_ops.byte() ?? 255;
+    const a = bin_ops.byte() ?? 255;
+    return [r, g, b, a];
+  } catch (e) {
+    console.warn("Error reading vertex color", e);
+    return [255, 255, 255, 255];
+  }
+}
+
+function readUvVert(bin_ops) {
+  try {
+    const x = bin_ops.single() ?? 0.0;  // X pos
+    const y = bin_ops.single() ?? 0.0;  // Y pos
+    return [x, y];
+  } catch (e) {
+    console.warn("Error reading UV vertex", e);
+    return [0.0, 0.0];
+  }
+}
+
+function readXYZ(bin_ops) {
+  try {
+    const x = bin_ops.single() ?? 0.0;  // X pos
+    const y = bin_ops.single() ?? 0.0;  // Y pos
+    const z = bin_ops.single() ?? 0.0;  // Z pos
+    return [x, y, z];
+  } catch (e) {
+    console.warn("Error reading XYZ coordinates", e);
+    return [0.0, 0.0, 0.0];
+  }
+}
+
+function read4Float(bin_ops) {
+  try {
+    const x = bin_ops.single() ?? 0.0;
+    const y = bin_ops.single() ?? 0.0;
+    const z = bin_ops.single() ?? 0.0;
+    const w = bin_ops.single() ?? 0.0;
+    return [x, y, z, w];
+  } catch (e) {
+    console.warn("Error reading 4 floats", e);
+    return [0.0, 0.0, 0.0, 0.0];
+  }
+}
+
+function read4Int16(bin_ops) {
+  try {
+    const r = bin_ops.int16() ?? 0;
+    const g = bin_ops.int16() ?? 0;
+    const b = bin_ops.int16() ?? 0;
+    const a = bin_ops.int16() ?? 0;
+    return [r, g, b, a];
+  } catch (e) {
+    console.warn("Error reading 4 floats", e);
+    return [0, 0, 0, 0];
+  }
+}
+
+function readTriIdxs(bin_ops) {
+  try {
+    const face1 = bin_ops.uint32() ?? 0;
+    const face2 = bin_ops.uint32() ?? 0;
+    const face3 = bin_ops.uint32() ?? 0;
+    return [face1, face2, face3];
+  } catch (e) {
+    console.warn("Error reading triangle indices", e);
+    return [0, 0, 0];
+  }
+}
+
 /*
-def readFilesString(file):
-    try:
-        lengthByte2 = 0
-
-        lengthByte1 = bin_ops.readByte(file)
-        if lengthByte1 is None:
-            return ""
-
-        if (lengthByte1 >= xps_const.LIMIT):
-            lengthByte2 = bin_ops.readByte(file)
-            if lengthByte2 is None:
-                return ""
-        length = (lengthByte1 % xps_const.LIMIT) + (lengthByte2 * xps_const.LIMIT)
-
-        string = bin_ops.readString(file, length)
-        return string or ""
-    except Exception as e:
-        print(f"Error reading string: {e}")
-        return ""
-
-
-def readVertexColor(file):
-    try:
-        r = bin_ops.readByte(file) or 255
-        g = bin_ops.readByte(file) or 255
-        b = bin_ops.readByte(file) or 255
-        a = bin_ops.readByte(file) or 255
-        vertexColor = [r, g, b, a]
-        return vertexColor
-    except Exception as e:
-        print(f"Error reading vertex color: {e}")
-        return [255, 255, 255, 255]
-
-
-def readUvVert(file):
-    try:
-        x = bin_ops.readSingle(file) or 0.0  # X pos
-        y = bin_ops.readSingle(file) or 0.0  # Y pos
-        coords = [x, y]
-        return coords
-    except Exception as e:
-        print(f"Error reading UV vertex: {e}")
-        return [0.0, 0.0]
-
-
-def readXYZ(file):
-    try:
-        x = bin_ops.readSingle(file) or 0.0  # X pos
-        y = bin_ops.readSingle(file) or 0.0  # Y pos
-        z = bin_ops.readSingle(file) or 0.0  # Z pos
-        coords = [x, y, z]
-        return coords
-    except Exception as e:
-        print(f"Error reading XYZ coordinates: {e}")
-        return [0.0, 0.0, 0.0]
-
-
-def read4Float(file):
-    try:
-        x = bin_ops.readSingle(file) or 0.0
-        y = bin_ops.readSingle(file) or 0.0
-        z = bin_ops.readSingle(file) or 0.0
-        w = bin_ops.readSingle(file) or 0.0
-        coords = [x, y, z, w]
-        return coords
-    except Exception as e:
-        print(f"Error reading 4 floats: {e}")
-        return [0.0, 0.0, 0.0, 0.0]
-
-
-def read4Int16(file):
-    try:
-        r = bin_ops.readInt16(file) or 0
-        g = bin_ops.readInt16(file) or 0
-        b = bin_ops.readInt16(file) or 0
-        a = bin_ops.readInt16(file) or 0
-        vertexColor = [r, g, b, a]
-        return vertexColor
-    except Exception as e:
-        print(f"Error reading 4 int16: {e}")
-        return [0, 0, 0, 0]
-
-
-def readTriIdxs(file):
-    try:
-        face1 = bin_ops.readUInt32(file) or 0
-        face2 = bin_ops.readUInt32(file) or 0
-        face3 = bin_ops.readUInt32(file) or 0
-        faceLoop = [face1, face2, face3]
-        return faceLoop
-    except Exception as e:
-        print(f"Error reading triangle indices: {e}")
-        return [0, 0, 0]
-
-
 def readHeader(file):
     xpsHeader = xps_types.XpsHeader()
     flags = flagsDefault()
