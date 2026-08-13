@@ -31,3 +31,12 @@ class AsciiOps {
       .map(Number);
   }
 }
+
+function basename(path) {
+  return path.split(/[\\/]/).pop();
+}
+
+export {
+  AsciiOps,
+  basename
+};
