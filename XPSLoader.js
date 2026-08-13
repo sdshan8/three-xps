@@ -18,6 +18,7 @@ import {
 import { DDSLoader } from "three/addons/loaders/DDSLoader.js"
 import { parseAscii } from "./libs/old/XPSAsciiParser.js"
 import { parseBin } from "./libs/old/XPSBinParser.js"
+import * as read_ascii_xps from "./libs/read_ascii_xps.js";
 
 
 /**
@@ -109,7 +110,11 @@ class XPSLoader extends Loader {
     const model = isBinary
       ? parseBin(data)
       : parseAscii(data);
-  
+/*
+    console.log(isBinary
+      ? parseBin(data)
+      : read_ascii_xps.parseXpsModel(data), model)
+  */
     return this.buildModel(model);
   }
 

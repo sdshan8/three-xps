@@ -1,4 +1,4 @@
-import { poseData } from "../ascii_ops.js";
+import { parseXpsPose } from "../read_ascii_xps.js";
 
 class binOps {
   static LIMIT = 128;
@@ -219,11 +219,7 @@ function readNone(bin, optionCount) {
 }
 
 function readDefaultPose(bin, poseLength, poseBones) {
-  const lines = [];
-
-  for (let i = 0; i < poseBones; i++) {
-    lines.push(bin.line());
-  }
+  let string = bin.string(poseLength);
 
   const roundedLength = bin.roundToMultiple(poseLength, 4);
   const padding = roundedLength - poseLength;
@@ -232,7 +228,7 @@ function readDefaultPose(bin, poseLength, poseBones) {
     bin.skip(padding);
   }
 
-  return lines;
+  return string;
 }
 
 function readHeader(bin) {
@@ -315,7 +311,7 @@ function readHeader(bin) {
     user,
     files,
     flags,
-    defaultPose: poseData(defaultPose)
+    defaultPose: parseXpsPose(defaultPose)
   };
 }
 
