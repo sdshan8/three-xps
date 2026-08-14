@@ -79,7 +79,7 @@ function readFilesString(bin_ops) {
     }
     const length = (lengthByte1 % xps_const.LIMIT) + (lengthByte2 * xps_const.LIMIT)
 
-    const string = bin_ops.string(file, length)
+    const string = bin_ops.string(length)
     return string ?? ""
   } catch (e) {
     console.warn("Error reading string", e);
@@ -245,11 +245,11 @@ function findHeader(bin_ops) {
   try {
     // Check for MAGIC_NUMBER
     const number = bin_ops.uint32();
-    file.seek(0);
+    bin_ops.seek(0);
 
     if (number == xps_const.MAGIC_NUMBER) {
       //console.log('Header Found')
-      header = readHeader(file);
+      header = readHeader(bin_ops);
     } else {
       console.log(`Warning: Invalid magic number, expected ${xps_const.MAGIC_NUMBER}, got ${number}`);
     }
@@ -310,7 +310,7 @@ function readBones(bin_ops) {
 function readMeshes(bin_ops, xpsHeader, hasBones) {
   let meshes = [];
   try {
-    const meshCount = bin_ops.uint32(file) ?? 0;
+    const meshCount = bin_ops.uint32() ?? 0;
     const hasHeader = Boolean(xpsHeader);
 
     const verMajor = hasHeader ? xpsHeader.version_major : 0;
