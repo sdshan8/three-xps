@@ -1,0 +1,25 @@
+{
+  "name": "three-xps",
+  "version": "1.0.0",
+  "description": "Xps Model Loader for Three.js based on https://github.com/mayloglog/XNALaraMesh-blender4.4",
+  "keywords": [
+    "three",
+    "threejs",
+    "xps"
+  ],
+  "homepage": "https://github.com/sdshan8/three-xps#readme",
+  "bugs": {
+    "url": "https://github.com/sdshan8/three-xps/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sdshan8/three-xps.git"
+  },
+  "license": "UNLICENSED",
+  "author": "sdshan8",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  }
+}
