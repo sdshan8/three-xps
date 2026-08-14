@@ -43,4 +43,4 @@ loader.load(
 ## License
 
 I don't know which License https://github.com/mayloglog/XNALaraMesh-blender4.4 in under so it's Unlicensed for now
-I know the blender addon page says it's GPL 3.0 but I the repo doesn't have any
+I know the blender addon page says it's GPL 3.0 but the repo doesn't have any License File.
