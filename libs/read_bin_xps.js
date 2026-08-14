@@ -71,15 +71,15 @@ function readFilesString(bin_ops) {
     let lengthByte2 = 0;
 
     let lengthByte1 = bin_ops.byte()
-    if (isNone(lengthByte1)) return "";
 
     if (lengthByte1 >= xps_const.LIMIT) {
       lengthByte2 = bin_ops.byte();
-      if (isNone(lengthByte2)) return "";
     }
-    const length = (lengthByte1 % xps_const.LIMIT) + (lengthByte2 * xps_const.LIMIT)
 
-    const string = bin_ops.string(length)
+    console.log(lengthByte1, lengthByte2)
+    const length = (lengthByte1 % xps_const.LIMIT) + lengthByte2 * xps_const.LIMIT;
+
+    const string = bin_ops.string(length);
     return string ?? ""
   } catch (e) {
     console.warn("Error reading string", e);
