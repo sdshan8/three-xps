@@ -250,7 +250,7 @@ function findHeader(bin_ops) {
     if (number == xps_const.MAGIC_NUMBER) {
       //console.log('Header Found')
       header = readHeader(file);
-    }else{
+    } else {
       console.log(`Warning: Invalid magic number, expected ${xps_const.MAGIC_NUMBER}, got ${number}`);
     }
     return header;
@@ -264,225 +264,191 @@ function readNone(bin_ops, optcount) {
   bin_ops.skip(4 * optcount);
 }
 
-/*
-def readFlags(file, optcount):
-  flags = flagsDefault()
-  try:
-    for i in range(optcount):
-      flag = bin_ops.readUInt32(file) or 0
-      value = bin_ops.readUInt32(file) or 0
-      flag_name = flagName(flag)
-      if flag_name in flags:
-        flags[flag_name] = flagValue(flag, value)
-    printNormalMapSwizzel(flags.get(xps_const.TANGENT_SPACE_RED, 0), 
-               flags.get(xps_const.TANGENT_SPACE_GREEN, 1), 
-               flags.get(xps_const.TANGENT_SPACE_BLUE, 0))
-    return flags
-  except Exception as e:
-    print(f"Error reading flags: {e}")
-    return flagsDefault()
+function readFlags(bin_ops, optcount) {
+  let flags = flagsDefault();
+  try {
+    for (let i = 0; i < optcount; i++) {
+      const flag = bin_ops.uint32() ?? 0;
+      const value = bin_ops.uint32() ?? 0;
+      const flag_name = flagName(flag)
+      if (flags.includes(flag_name)) {
+        flags[flag_name] = flagValue(flag, value);
+      }
+    }
+    return flags;
+  } catch (e) {
+    console.warn("Error reading flags", e);
+    return flagsDefault();
+  }
+}
 
 
-def logHeader(xpsHeader):
-  if not xpsHeader:
-    print("No header found")
-    return
-    
-  print("MAGIX:", xpsHeader.magic_number)
-  print('VER MAYOR:', xpsHeader.version_mayor)
-  print('VER MINOR:', xpsHeader.version_minor)
-  print('NAME:', xpsHeader.xna_aral)
-  print('SETTINGS LEN:', xpsHeader.settingsLen)
-  print('MACHINE:', xpsHeader.machine)
-  print('USR:', xpsHeader.user)
-  print('FILES:', xpsHeader.files)
-  print('SETTING:', xpsHeader.settings)
-  print('DEFAULT POSE:', xpsHeader.pose)
+function readBones(bin_ops) {
+  let bones = [];
+  try {
+    // Bone Count
+    let boneCount = bin_ops.uint32() ?? 0;
+
+    for (let boneId = 0; boneId < boneCount; boneId++) {
+      let boneName = readFilesString(bin_ops);
+      if (!boneName) {
+        boneName = `Bone_${boneId}`;
+      }
+      let parentId = bin_ops.uint16() ?? -1;
+
+      const coords = readXYZ(bin_ops);
+      const xpsBone = new xps_types.XpsBone(boneId, boneName, coords, parentId);
+      bones.push(xpsBone)
+    }
+  } catch (e) {
+    console.warn("Error reading bones", e);
+  }
+  return bones;
+}
 
 
-def readBones(file, header):
-  bones = []
-  try:
-    # Bone Count
-    boneCount = bin_ops.readUInt32(file) or 0
+function readMeshes(bin_ops, xpsHeader, hasBones) {
+  let meshes = [];
+  try {
+    const meshCount = bin_ops.uint32(file) ?? 0;
+    const hasHeader = Boolean(xpsHeader);
 
-    for boneId in range(boneCount):
-      boneName = readFilesString(file)
-      if not boneName:
-        boneName = f"Bone_{boneId}"
-      parentId = bin_ops.readInt16(file) or -1
-      coords = readXYZ(file)
+    const verMajor = hasHeader ? xpsHeader.version_major : 0;
+    const verMinor = hasHeader ? xpsHeader.version_minor : 0;
 
-      xpsBone = xps_types.XpsBone(boneId, boneName, coords, parentId)
-      bones.append(xpsBone)
-    return bones
-  except Exception as e:
-    print(f"Error reading bones: {e}")
-    return []
+    const hasTangent = bin_ops.hasTangentVersion(verMayor, verMinor, hasHeader);
+    const hasVariableWeight = bin_ops.hasVariableWeights(verMayor, hasHeader);
 
+    for (let meshId = 0; meshId < meshCount; meshId++) {
+      // Name
+      let meshName = readFilesString(bin_ops);
+      if (!meshName) {
+        meshName = `Mesh_${meshId}`;
+      }
 
-def readMeshes(file, xpsHeader, hasBones):
-  meshes = []
-  try:
-    meshCount = bin_ops.readUInt32(file) or 0
+      // uv Count
+      const uvLayerCount = bin_ops.uint32() ?? 0;
 
-    hasHeader = bool(xpsHeader)
+      // Textures
+      let textures = [];
+      const textureCount = bin_ops.uint32() ?? 0;
+      for (let texId = 0; texId < textureCount; texId++) {
+        try {
+          let textureFile = basename(readFilesString(bin_ops));
+          if (!textureFile) {
+            textureFile = `texture_${texId}.dds`;
+          }
+          let uvLayerId = bin_ops.uint32() ?? 0;
+          const xpsTexture = new xps_types.XpsTexture(texId, textureFile, uvLayerId);
+          textures.push(xpsTexture);
+        } catch (e) {
+          console.warn(`Error reading texture ${texId}`, e);
+          continue;
+        }
+      }
 
-    verMayor = xpsHeader.version_mayor if hasHeader else 0
-    verMinor = xpsHeader.version_minor if hasHeader else 0
+      // Vertices
+      let vertex = [];
+      const vertexCount = bin_ops.uint32() ?? 0;
+      for (let vertexId = 0; vertexId < vertexCount; vertexId++) {
+        try {
+          const coord = readXYZ(bin_ops);
+          const normal = readXYZ(bin_ops);
+          const vertexColor = readVertexColor(bin_ops);
 
-    hasTangent = bin_ops.hasTangentVersion(verMayor, verMinor, hasHeader)
-    hasVariableWeights = bin_ops.hasVariableWeights(verMayor, verMinor, hasHeader)
+          let uvs = [];
+          for (let uvLayerId = 0; uvLayerId < uvLayerCount; uvLayerId++) {
+            const uvVert = readUvVert(bin_ops);
+            uvs.push(uvVert);
+            if (hasTangent) const tangent = read4Float(bin_ops);
+          }
 
-    for meshId in range(meshCount):
-      try:
-        # Name
-        meshName = readFilesString(file)
-        if not meshName:
-          meshName = f'Mesh_{meshId}'
-        # print('Mesh Name:', meshName)
-        # uv Count
-        uvLayerCount = bin_ops.readUInt32(file) or 0
-        # Textures
-        textures = []
-        textureCount = bin_ops.readUInt32(file) or 0
-        for texId in range(textureCount):
-          try:
-            textureFile = ntpath.basename(readFilesString(file))
-            if not textureFile:
-              textureFile = f"texture_{texId}.dds"
-            # print('Texture file', textureFile)
-            uvLayerId = bin_ops.readUInt32(file) or 0
+          let boneWeights = [];
+          if (hasBones) {
+            // if cero bones dont have weights to read
 
-            xpsTexture = xps_types.XpsTexture(texId, textureFile, uvLayerId)
-            textures.append(xpsTexture)
-          except Exception as e:
-            print(f"Error reading texture {texId}: {e}")
-            continue
+            let boneIdx = []
+            let boneWeight = []
+            let weightsCount = 4;
+            if (hasVariableWeight){
+              weightsCount = bin_ops.int16() ?? 0;
+            }
 
-        # Vertices
-        vertex = []
-        vertexCount = bin_ops.readUInt32(file) or 0
+            for (let i = 0; i < weightsCount; i++) {
+              boneIdx.push(
+                bin_ops.int16() ?? 0
+              );
+              boneWeight.push(
+                bin_ops.single() ?? 0
+              );
+            }
 
-        for vertexId in range(vertexCount):
-          try:
-            coord = readXYZ(file)
-            normal = readXYZ(file)
-            vertexColor = readVertexColor(file)
+            for (let idx = 0; idx < boneIdx.length; idx++) {
+              boneWeights.push(
+                new xps_types.BoneWeight(boneIdx[idx], boneWeight[idx])
+              );
+            }
+          }
+          const xpsVertex = new xps_types.XpsVertex(
+            vertexId, coord, normal, vertexColor, uvs, boneWeights
+          );
+          vertex.push(xpsVertex)
+        } catch (e) {
+          console.warn(`Error reading vertex ${vertexId}`, e);
+          continue;
+        }
+      }
 
-            uvs = []
-            for uvLayerId in range(uvLayerCount):
-              uvVert = readUvVert(file)
-              uvs.append(uvVert)
-              if hasTangent:
-                tangent = read4Float(file)
+      // Faces
+      let faces = [];
+      const triCount =  bin_ops.uint32() ?? 0;
 
-            boneWeights = []
-            if hasBones:
-              # if cero bones dont have weights to read
+      for (let i = 0; i < triCount; i++) {
+        try {
+          const triIdxs = readTriIdxs(bin_ops);
+          faces.push(triIdxs);
+        } catch (e) {
+          console.warn(`Error reading face ${i}`, e);
+          continue;
+        }
+      }
 
-              boneIdx = []
-              boneWeight = []
-              if hasVariableWeights:
-                weightsCount = bin_ops.readInt16(file) or 0
-              else:
-                weightsCount = 4
+      const xpsMesh = new xps_types.XpsMesh(
+        meshName, textures, vertex, faces, uvLayerCount
+      );
+      meshes.push(xpsMesh);
+    }
+  } catch (e) {
+    console.warn("Error reading meshes", e);
+  }
+  return meshes;
+}
 
-              for x in range(weightsCount):
-                bone_id = bin_ops.readInt16(file) or 0
-                boneIdx.append(bone_id)
-              for x in range(weightsCount):
-                weight = bin_ops.readSingle(file) or 0.0
-                boneWeight.append(weight)
+function parseBinModel(buffer) {
+  try {
+    const bin_ops = new BinOps(buffer);
+    const xpsHeader = findHeader(bin_ops);
+    const bones = readBones(bin_ops);
+    const hasBones = bones.length !== 0;
+    const meshes = readMeshes(bin_ops, xpsHeader, hasBones);
+    const xpsModelData = new xps_types.XpsData(xpsHeader, bones, meshes);
+    return xpsModelData;
+  } catch (e) {
+    console.warn("Error reading XPS model", e);
+    return new xps_types.XpsData('', [], []);
+  }
+}
 
-              for idx in range(len(boneIdx)):
-                boneWeights.append(
-                  xps_types.BoneWeight(boneIdx[idx], boneWeight[idx]))
-            xpsVertex = xps_types.XpsVertex(
-              vertexId, coord, normal, vertexColor, uvs, boneWeights)
-            vertex.append(xpsVertex)
-          except Exception as e:
-            print(f"Error reading vertex {vertexId}: {e}")
-            continue
+function readDefaultPose(bin_ops, poseLengthUnround) {
+  const string = bin_ops.string(poseLengthUnround);
 
-        # Faces
-        faces = []
-        triCount = bin_ops.readUInt32(file) or 0
-        for i in range(triCount):
-          try:
-            triIdxs = readTriIdxs(file)
-            faces.append(triIdxs)
-          except Exception as e:
-            print(f"Error reading face {i}: {e}")
-            continue
-            
-        xpsMesh = xps_types.XpsMesh(
-          meshName, textures, vertex, faces, uvLayerCount)
-        meshes.append(xpsMesh)
-      except Exception as e:
-        print(f"Error reading mesh {meshId}: {e}")
-        continue
-    return meshes
-  except Exception as e:
-    print(f"Error reading meshes: {e}")
-    return []
+  const poseLength = bin_ops.roundToMultiple(poseLengthUnround, 4);
+  const emptyBytes = poseLength- poseLengthUnround;
 
+  if (emptyBytes > 0) {
+    bin.skip(emptyBytes);
+  }
 
-def readIoStream(filename):
-  try:
-    with open(filename, "rb") as a_file:
-      ioStream = io.BytesIO(a_file.read())
-    return ioStream
-  except Exception as e:
-    print(f"Error opening file {filename}: {e}")
-    return None
+  return parseXpsPose(string);
+}
 
-
-def readXpsModel(filename):
-  print('File:', filename)
-
-  try:
-    ioStream = readIoStream(filename)
-    if not ioStream:
-      return xps_types.XpsData(None, [], [])
-      
-    print('Reading Header')
-    xpsHeader = findHeader(ioStream)
-    print('Reading Bones')
-    bones = readBones(ioStream, xpsHeader)
-    hasBones = bool(bones)
-    print('Read', len(bones), 'Bones')
-    print('Reading Meshes')
-    meshes = readMeshes(ioStream, xpsHeader, hasBones)
-    print('Read', len(meshes), 'Meshes')
-
-    xpsData = xps_types.XpsData(xpsHeader, bones, meshes)
-    return xpsData
-  except Exception as e:
-    print(f"Error reading XPS model {filename}: {e}")
-    return xps_types.XpsData(None, [], [])
-
-
-def readDefaultPose(file, poseLenghtUnround, poseBones):
-  try:
-    # print('Import Pose')
-    poseBytes = b''
-    if poseLenghtUnround and poseBones > 0:
-      for i in range(0, poseBones):
-        line = file.readline()
-        if line:
-          poseBytes += line
-
-    poseLenght = bin_ops.roundToMultiple(
-      poseLenghtUnround, xps_const.ROUND_MULTIPLE)
-    emptyBytes = poseLenght - poseLenghtUnround
-    if emptyBytes > 0:
-      file.read(emptyBytes)
-    poseString = bin_ops.decodeBytes(poseBytes)
-    bonesPose = read_ascii_xps.poseData(poseString)
-    return bonesPose
-  except Exception as e:
-    print(f"Error reading default pose: {e}")
-    return None
-
-*/

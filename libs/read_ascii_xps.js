@@ -191,7 +191,7 @@ function readMeshes(ascii_ops, hasBones) {
   } catch (e) {
     console.warn("Error reading meshes", e);
   }
-  return meshes
+  return meshes;
 }
 
 function poseData(string) {
@@ -238,7 +238,7 @@ function poseData(string) {
   return poseData;
 }
 
-function parseXpsModel(string) {
+function parseAsciiModel(string) {
   try {
     const ascii_ops = new AsciiOps(string);
     // const xpsHeader = readHeader(ascii_ops);
