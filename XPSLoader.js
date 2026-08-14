@@ -16,9 +16,7 @@ import {
   Uint16BufferAttribute
 } from "three";
 import { DDSLoader } from "three/addons/loaders/DDSLoader.js"
-import { parseAscii } from "./libs/old/XPSAsciiParser.js"
-import { parseBin } from "./libs/old/XPSBinParser.js"
-import * as read_ascii_xps from "./libs/read_ascii_xps.js";
+import { parseAsciiModel, parseXpsPose, parseBinModel } from "./libs/index.js";
 
 
 /**
@@ -59,7 +57,7 @@ class XPSLoader extends Loader {
     this.enableDDS = options.enableDDS ?? false;
     this.enableLightMap = options.enableLightMap ?? false;
     this.enableToon = options.enableToon ?? true;
-    
+
   }
 
   /**
@@ -79,7 +77,7 @@ class XPSLoader extends Loader {
 
     const isAscii = lower.endsWith(".mesh.ascii");
     const isBinary = lower.endsWith(".xps");
-  
+
     if (!isAscii && !isBinary) {
       throw new Error(
         "Unsupported XPS model format. Expected .mesh.ascii or .xps"
@@ -108,18 +106,207 @@ class XPSLoader extends Loader {
   parse(data, isBinary = false) {
 
     const model = isBinary
-      ? parseBin(data)
-      : parseAscii(data);
-/*
-    console.log(isBinary
-      ? parseBin(data)
-      : read_ascii_xps.parseXpsModel(data), model)
-  */
+      ? parseBinModel(data)
+      : parseAsciiModel(data);
     return this.buildModel(model);
   }
 
   buildModel(data) {
+
+    const textureLoader = new TextureLoader(this.manager);
+    const ddsLoader = new DDSLoader(this.manager);
+    const group = new Group();
+
+    if (data.bones.length == 0 && data.meshes.length == 0) {
+      throw new Error(
+        "No Bones or Meshes"
+      );
+    }
     
+    // Bones
+
+    const bones = data.bones.map(boneData => {
+      const bone = new Bone();
+
+      bone.name = boneData.name;
+      if (boneData.parent < 0) {
+        bone.position.set(
+          boneData.position[0],
+          boneData.position[1],
+          boneData.position[2]
+        );
+      } else {
+        bone.position.set(
+          boneData.position[0] - data.bones[boneData.parent].position[0],
+          boneData.position[1] - data.bones[boneData.parent].position[1],
+          boneData.position[2] - data.bones[boneData.parent].position[2],
+        );
+      }
+
+      return bone;
+    });
+
+    let rootBone = null;
+
+    data.bones.forEach((boneData, i) => {
+      if (boneData.parent < 0) {
+        rootBone = bones[i];
+      } else {
+        bones[boneData.parent].add(bones[i]);
+      }
+    });
+
+    const skeleton = new Skeleton(bones);
+    
+    // Meshes
+
+    for (const meshData of data.meshes) {
+      const positions = [];
+      const normals = [];
+      const uvs = [];
+      const colors = [];
+      const skinIndices = [];
+      const skinWeights = [];
+      const indices = [];
+
+      for (const v of meshData.vertices) {
+        positions.push(...v.position);
+
+        normals.push(...v.normal);
+
+        /*
+        for(const i in v.uv) {
+          if(!uv[i]){
+            uv[i] = [];
+          }
+          uv[i].push(...v.uv[i])
+        }
+        */
+        uvs.push(...v.uv[0]);
+
+        colors.push(
+          v.color[0] / 255,
+          v.color[1] / 255,
+          v.color[2] / 255,
+          v.color[3] / 255
+        );
+
+        for (const boneWeight of v.boneWeights) {
+          skinIndices.push(boneWeight.id);
+          skinWeights.push(boneWeight.weight);
+        }
+      }
+
+      for (const face of meshData.faces) {
+        indices.push(face[0], face[2], face[1]);
+      }
+
+      const geometry = new BufferGeometry();
+
+      geometry.setAttribute(
+        "position",
+        new Float32BufferAttribute(positions, 3)
+      );
+
+      geometry.setAttribute(
+        "normal",
+        new Float32BufferAttribute(normals, 3)
+      );
+
+      geometry.setAttribute(
+        "uv",
+        new Float32BufferAttribute(uvs, 2)
+      );
+
+      geometry.setAttribute(
+        "color",
+        new Float32BufferAttribute(colors, 4)
+      );
+
+      if (this.enableLightMap) {
+        geometry.setAttribute(
+          "uv1",
+          geometry.getAttribute("uv").clone()
+        );
+      }
+
+      geometry.setAttribute(
+        "skinIndex",
+        new Uint16BufferAttribute(skinIndices, 4)
+      );
+
+      geometry.setAttribute(
+        "skinWeight",
+        new Float32BufferAttribute(skinWeights, 4)
+      );
+
+      geometry.setIndex(indices);
+
+      let textureFile = meshData.textures[0].file;
+      let texture;
+
+      if (textureFile.endsWith(".dds") && this.enableDDS) {
+        texture = ddsLoader.load(this.resourcePath + textureFile);
+        texture.colorSpace = SRGBColorSpace;
+      } else if (textureFile.endsWith(".dds")) {
+        textureFile = textureFile.replace(".dds", ".png");
+        texture = textureLoader.load(this.resourcePath + textureFile);
+        texture.colorSpace = SRGBColorSpace;
+        texture.flipY = false;
+      } else {
+        texture = textureLoader.load(this.resourcePath + textureFile);
+        texture.colorSpace = SRGBColorSpace;
+        texture.flipY = false;
+      }
+
+      let lightMap;
+      if (this.enableLightMap) {
+        if (textureFile.includes("_Color")) {
+          textureFile = textureFile.replace(".dds", ".png");
+          const lightMapFile = textureFile.replace("_Color", "_LightMap");
+          lightMap = textureLoader.load(this.resourcePath + lightMapFile);
+          lightMap.colorSpace = LinearSRGBColorSpace;
+          lightMap.flipY = true;
+        }
+      }
+      let material;
+      if (this.enableToon) {
+        material = new MeshToonMaterial({
+          map: texture,
+          vertexColors: false,
+          transparent: true,
+          alphaTest: 0.2,
+          side: DoubleSide
+        });
+      } else {
+        material = new MeshStandardMaterial({
+          map: texture,
+          vertexColors: false,
+          transparent: true,
+          alphaTest: 0.2,
+          side: DoubleSide
+        });
+      }
+      if (lightMap) {
+        material.lightMap = lightMap;
+        material.lightMapIntensity = 1;
+      }
+
+      const mesh = new SkinnedMesh(geometry, material);
+
+      mesh.name = meshData.name;
+
+      mesh.add(rootBone);
+      mesh.bind(skeleton);
+      mesh.normalizeSkinWeights();
+
+      group.add(mesh);
+    }
+    return group;
+  }
+/*
+  buildOldModel(data) {
+
     const textureLoader = new TextureLoader(this.manager);
     const ddsLoader = new DDSLoader();
     const group = new Group();
@@ -230,14 +417,14 @@ class XPSLoader extends Loader {
         "color",
         new Float32BufferAttribute(colors, 4)
       );
-      
-      if(this.enableLightMap) {
+
+      if (this.enableLightMap) {
         geometry.setAttribute(
           "uv1",
           geometry.getAttribute("uv").clone()
         );
       }
-      
+
       geometry.setAttribute(
         "skinIndex",
         new Uint16BufferAttribute(skinIndices, 4)
@@ -252,12 +439,12 @@ class XPSLoader extends Loader {
 
       let textureFile = meshData.textures[0].file;
       let texture;
-      
+
       if (textureFile.endsWith(".dds") && this.enableDDS) {
         texture = ddsLoader.load(this.resourcePath + textureFile);
         texture.colorSpace = SRGBColorSpace;
       } else if (textureFile.endsWith(".dds")) {
-        textureFile = textureFile.replace(".dds",".png");
+        textureFile = textureFile.replace(".dds", ".png");
         texture = textureLoader.load(this.resourcePath + textureFile);
         texture.colorSpace = SRGBColorSpace;
         texture.flipY = false;
@@ -266,19 +453,19 @@ class XPSLoader extends Loader {
         texture.colorSpace = SRGBColorSpace;
         texture.flipY = false;
       }
-      
+
       let lightMap;
-      if(this.enableLightMap) {
+      if (this.enableLightMap) {
         if (textureFile.includes("_Color")) {
-          textureFile = textureFile.replace(".dds",".png");
-          const lightMapFile = textureFile.replace("_Color","_LightMap");
+          textureFile = textureFile.replace(".dds", ".png");
+          const lightMapFile = textureFile.replace("_Color", "_LightMap");
           lightMap = textureLoader.load(this.resourcePath + lightMapFile);
           lightMap.colorSpace = LinearSRGBColorSpace;
           lightMap.flipY = true;
         }
       }
       let material;
-      if(this.enableToon){
+      if (this.enableToon) {
         material = new MeshToonMaterial({
           map: texture,
           vertexColors: false,
@@ -295,7 +482,7 @@ class XPSLoader extends Loader {
           side: DoubleSide
         });
       }
-      if(lightMap) {
+      if (lightMap) {
         material.lightMap = lightMap;
         material.lightMapIntensity = 1;
       }
@@ -312,6 +499,7 @@ class XPSLoader extends Loader {
     }
     return group;
   }
+    */
 }
 
 export { XPSLoader };

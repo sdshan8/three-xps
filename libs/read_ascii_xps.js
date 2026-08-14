@@ -263,6 +263,6 @@ function parseXpsPose(string){
  */
 
 export {
-  parseXpsModel,
+  parseAsciiModel,
   parseXpsPose
 };

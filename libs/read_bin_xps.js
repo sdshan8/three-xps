@@ -5,7 +5,7 @@ import {
   hasTangentVersion,
   hasVariableWeights
 } from './bin_ops.js';
-import { parseXpsPose } from '../read_ascii_xps.js';
+import { parseXpsPose } from './read_ascii_xps.js';
 import * as xps_const from './xps_const.js';
 import * as xps_types from './xps_types.js';
 
@@ -360,7 +360,7 @@ function readMeshes(bin_ops, xpsHeader, hasBones) {
           for (let uvLayerId = 0; uvLayerId < uvLayerCount; uvLayerId++) {
             const uvVert = readUvVert(bin_ops);
             uvs.push(uvVert);
-            if (hasTangent) const tangent = read4Float(bin_ops);
+            if (hasTangent) read4Float(bin_ops);
           }
 
           let boneWeights = [];
@@ -452,3 +452,6 @@ function readDefaultPose(bin_ops, poseLengthUnround) {
   return parseXpsPose(string);
 }
 
+export {
+  parseBinModel
+};
