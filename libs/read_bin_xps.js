@@ -25,14 +25,14 @@ function flagName(flag) {
 
 function flagsDefault() {
   const flags = {
-    [xps_const.BACK_FACE_CULLING]: False,
-    [xps_const.ALWAYS_FORCE_CULLING]: False,
-    [xps_const.MODEL_CAST_SHADOWS]: True,
+    [xps_const.BACK_FACE_CULLING]: false,
+    [xps_const.ALWAYS_FORCE_CULLING]: false,
+    [xps_const.MODEL_CAST_SHADOWS]: true,
     [xps_const.TANGENT_SPACE_RED]: 0,  // Straight X channel
     [xps_const.TANGENT_SPACE_GREEN]: 1,  // Invert Y channel
     [xps_const.TANGENT_SPACE_BLUE]: 0,  // Straight Z channel
     [xps_const.GLOSS]: 10,
-    [xps_const.HAS_BONE_DIRECTIONS]: False
+    [xps_const.HAS_BONE_DIRECTIONS]: false
   }
   return flags
 }
@@ -76,7 +76,6 @@ function readFilesString(bin_ops) {
       lengthByte2 = bin_ops.byte();
     }
 
-    console.log(lengthByte1, lengthByte2)
     const length = (lengthByte1 % xps_const.LIMIT) + lengthByte2 * xps_const.LIMIT;
 
     const string = bin_ops.string(length);
@@ -271,9 +270,7 @@ function readFlags(bin_ops, optcount) {
       const flag = bin_ops.uint32() ?? 0;
       const value = bin_ops.uint32() ?? 0;
       const flag_name = flagName(flag)
-      if (flags.includes(flag_name)) {
-        flags[flag_name] = flagValue(flag, value);
-      }
+      flags[flag_name] = flagValue(flag, value);
     }
     return flags;
   } catch (e) {
@@ -288,13 +285,12 @@ function readBones(bin_ops) {
   try {
     // Bone Count
     let boneCount = bin_ops.uint32() ?? 0;
-
     for (let boneId = 0; boneId < boneCount; boneId++) {
       let boneName = readFilesString(bin_ops);
       if (!boneName) {
         boneName = `Bone_${boneId}`;
       }
-      let parentId = bin_ops.uint16() ?? -1;
+      let parentId = bin_ops.int16();
 
       const coords = readXYZ(bin_ops);
       const xpsBone = new xps_types.XpsBone(boneId, boneName, coords, parentId);
@@ -316,8 +312,8 @@ function readMeshes(bin_ops, xpsHeader, hasBones) {
     const verMajor = hasHeader ? xpsHeader.version_major : 0;
     const verMinor = hasHeader ? xpsHeader.version_minor : 0;
 
-    const hasTangent = bin_ops.hasTangentVersion(verMayor, verMinor, hasHeader);
-    const hasVariableWeight = bin_ops.hasVariableWeights(verMayor, hasHeader);
+    const hasTangent = hasTangentVersion(verMajor, verMinor, hasHeader);
+    const hasVariableWeight = hasVariableWeights(verMajor, hasHeader);
 
     for (let meshId = 0; meshId < meshCount; meshId++) {
       // Name
@@ -370,16 +366,19 @@ function readMeshes(bin_ops, xpsHeader, hasBones) {
             let boneIdx = []
             let boneWeight = []
             let weightsCount = 4;
-            if (hasVariableWeight){
+            if (hasVariableWeight) {
               weightsCount = bin_ops.int16() ?? 0;
             }
 
             for (let i = 0; i < weightsCount; i++) {
               boneIdx.push(
-                bin_ops.int16() ?? 0
+                bin_ops.int16()
               );
+            }
+
+            for (let i = 0; i < weightsCount; i++) {
               boneWeight.push(
-                bin_ops.single() ?? 0
+                bin_ops.single()
               );
             }
 
@@ -401,7 +400,7 @@ function readMeshes(bin_ops, xpsHeader, hasBones) {
 
       // Faces
       let faces = [];
-      const triCount =  bin_ops.uint32() ?? 0;
+      const triCount = bin_ops.uint32() ?? 0;
 
       for (let i = 0; i < triCount; i++) {
         try {
@@ -442,11 +441,11 @@ function parseBinModel(buffer) {
 function readDefaultPose(bin_ops, poseLengthUnround) {
   const string = bin_ops.string(poseLengthUnround);
 
-  const poseLength = bin_ops.roundToMultiple(poseLengthUnround, 4);
-  const emptyBytes = poseLength- poseLengthUnround;
+  const poseLength = roundToMultiple(poseLengthUnround, 4);
+  const emptyBytes = poseLength - poseLengthUnround;
 
   if (emptyBytes > 0) {
-    bin.skip(emptyBytes);
+    bin_ops.skip(emptyBytes);
   }
 
   return parseXpsPose(string);

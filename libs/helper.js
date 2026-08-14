@@ -8,7 +8,13 @@ function isNone(value) {
   return false;
 }
 
+function extractModelName(value) {
+  const match = value.match(/([^\\\/]+)\.mesh\s*-->/i);
+  return match ? match[1] : "model";
+}
+
 export {
   basename,
-  isNone
+  isNone,
+  extractModelName
 }

@@ -64,9 +64,6 @@ function readBones(ascii_ops) {
         boneName = `Bone_${boneId}`;
       }
       let parentId = ascii_ops.int();
-      if (!parentId) {
-        parentId = -1;
-      }
       const coords = readXYZ(ascii_ops);
       const xpsBone = new xps_types.XpsBone(boneId, boneName, coords, parentId);
       bones.push(xpsBone)
