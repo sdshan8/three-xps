@@ -2,6 +2,17 @@
 
 A Three.js loader for importing XPS (XNALara/XPS) models. Based on https://github.com/mayloglog/XNALaraMesh-blender4.4
 
+## Disclaimer
+Some of the code was AI-Genned as I didn't know how THREE.js worked at that time.
+
+Specifically:
+* Most of the Boilerplate for `src/XPSLoader.js`
+* `constructor()` for `src/libs/ascii_ops.js`
+* `constructor()` for `src/libs/bin_ops.js`
+* `fillArray()` in `src/libs/read_ascii_xps.js`
+* `extractModelName()` in `src/libs/helper.js`
+
+
 ## Installation
 
 ```bash
