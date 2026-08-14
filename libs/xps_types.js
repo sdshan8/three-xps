@@ -73,7 +73,7 @@ export class XpsData {
 export class XpsHeader {
   constructor(
     magic_number = xps_const.MAGIC_NUMBER,
-    version_mayor = xps_const.XPS_VERSION_MAYOR,
+    version_major = xps_const.XPS_VERSION_MAJOR,
     version_minor = xps_const.XPS_VERSION_MINOR,
     xna_aral = xps_const.XNA_ARAL,
     settingsLen = xps_const.STRLEN,
@@ -83,7 +83,7 @@ export class XpsHeader {
     settings = '',
     pose = '') {
     this.magic_number = magic_number;
-    this.version_mayor = version_mayor;
+    this.version_major = version_major;
     this.version_minor = version_minor;
     this.xna_aral = xna_aral;
     this.settingsLen = settingsLen;
@@ -135,7 +135,7 @@ export class XpsExportSettings {
     preserveSeams,
     vColors,
     exportNormals,
-    versionMayor,
+    versionMajor,
     versionMinor) {
     this.filename = filename;
     this.format = format;
@@ -146,7 +146,7 @@ export class XpsExportSettings {
     this.preserveSeams = preserveSeams;
     this.vColors = vColors;
     this.exportNormals = exportNormals;
-    this.versionMayor = versionMayor;
+    this.versionMajor = versionMajor;
     this.versionMinor = versionMinor;
   }
 }
