@@ -70,7 +70,7 @@ function readFilesString(bin_ops) {
   try {
     let lengthByte2 = 0;
 
-    let lengthByte1 = bin_ops.readByte()
+    let lengthByte1 = bin_ops.byte()
     if (isNone(lengthByte1)) return "";
 
     if (lengthByte1 >= xps_const.LIMIT) {
