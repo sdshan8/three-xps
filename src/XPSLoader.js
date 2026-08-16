@@ -265,7 +265,7 @@ class XPSLoader extends Loader {
           const lightMapFile = textureFile.replace("_Color", "_LightMap");
           lightMap = textureLoader.load(this.resourcePath + lightMapFile);
           lightMap.colorSpace = LinearSRGBColorSpace;
-          lightMap.flipY = true;
+          lightMap.flipY = false;
         }
       }
       let material;
