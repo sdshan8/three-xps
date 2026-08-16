@@ -13,7 +13,9 @@ import {
   SkinnedMesh,
   SRGBColorSpace,
   TextureLoader,
-  Uint16BufferAttribute
+  Uint16BufferAttribute,
+  Matrix4,
+  DetachedBindMode
 } from "three";
 import { DDSLoader } from "three/addons/loaders/DDSLoader.js"
 import { parseAsciiModel, parseXpsPose, parseBinModel, extractModelName } from "./libs/index.js";
@@ -122,7 +124,7 @@ class XPSLoader extends Loader {
         "No Bones or Meshes"
       );
     }
-    
+
     // Bones
 
     const bones = data.bones.map(boneData => {
@@ -155,8 +157,19 @@ class XPSLoader extends Loader {
       }
     });
 
-    const skeleton = new Skeleton(bones);
-    
+    rootBone.updateMatrixWorld(true);
+
+    const boneInverses = bones.map(
+      bone => bone.matrixWorld.clone().invert()
+    );
+
+    const skeleton = new Skeleton(
+      bones,
+      boneInverses
+    );
+
+    group.add(rootBone);
+
     // Meshes
 
     for (const meshData of data.meshes) {
@@ -295,14 +308,15 @@ class XPSLoader extends Loader {
 
       mesh.name = meshData.name;
 
-      mesh.add(rootBone);
-      mesh.bind(skeleton);
+      mesh.bindMode = DetachedBindMode;
+      mesh.bind(skeleton,new Matrix4());
       mesh.normalizeSkinWeights();
       group.add(mesh);
     }
 
-    if(data.header) {
+    if (data.header) {
       group.name = extractModelName(data.header.files);
+      group.userData.header = data.header;
     }
     return group;
   }
